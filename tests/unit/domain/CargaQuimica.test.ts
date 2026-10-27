@@ -81,6 +81,22 @@ describe('CargaQuimica', () => {
 
       expect(resultado.ok).toBe(false);
     });
+
+    it('rejeita data de entrada inválida', () => {
+      const resultado = CargaQuimica.registrar({ ...dadosValidos, dataDeEntrada: new Date('abc') });
+
+      expect(resultado.ok).toBe(false);
+      if (resultado.ok) return;
+      expect(resultado.error).toBeInstanceOf(ValidacaoError);
+    });
+
+    it('usa a data informada como data de entrada', () => {
+      const dataDeEntrada = new Date('2026-10-20T08:00:00Z');
+
+      const carga = registrar({ dataDeEntrada });
+
+      expect(carga.toProps().dataDeEntrada).toEqual(dataDeEntrada);
+    });
   });
 
   describe('atualização de status', () => {

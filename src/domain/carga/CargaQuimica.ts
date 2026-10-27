@@ -73,6 +73,10 @@ export class CargaQuimica {
     const quantidade = Quantidade.criar(dados.quantidade, dados.unidadeDeMedida);
     if (!quantidade.ok) return quantidade;
 
+    if (dados.dataDeEntrada && Number.isNaN(dados.dataDeEntrada.getTime())) {
+      return fail(new ValidacaoError('A data de entrada é inválida'));
+    }
+
     const apresentados = new Set(dados.documentosApresentados ?? []);
     const documentos = DOCUMENTOS_OBRIGATORIOS.map((tipo) => ({
       tipo,
