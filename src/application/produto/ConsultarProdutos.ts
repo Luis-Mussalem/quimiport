@@ -1,5 +1,5 @@
-import { StatusDoProduto } from '../../domain/produto/ClasseDeRisco';
 import { ProdutoQuimicoRepository } from '../../domain/produto/ProdutoQuimicoRepository';
+import { StatusDoProduto } from '../../domain/produto/StatusDoProduto';
 import { fail, ok, Result } from '../../domain/shared/Result';
 import { NaoEncontradoError } from '../shared/ApplicationError';
 import { paraProdutoDTO, ProdutoDTO } from './ProdutoDTO';

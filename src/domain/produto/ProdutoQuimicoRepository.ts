@@ -1,5 +1,5 @@
-import { StatusDoProduto } from './ClasseDeRisco';
 import { ProdutoQuimico } from './ProdutoQuimico';
+import { StatusDoProduto } from './StatusDoProduto';
 
 export interface FiltroDeProdutos {
   status?: StatusDoProduto;

@@ -16,7 +16,3 @@ export type ClasseDeRisco = (typeof CLASSES_DE_RISCO)[number];
 export function isClasseDeRisco(valor: unknown): valor is ClasseDeRisco {
   return typeof valor === 'string' && (CLASSES_DE_RISCO as readonly string[]).includes(valor);
 }
-
-export const STATUS_DO_PRODUTO = ['ATIVO', 'INATIVO'] as const;
-
-export type StatusDoProduto = (typeof STATUS_DO_PRODUTO)[number];

@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { ValidacaoError } from '../shared/DomainError';
 import { fail, ok, Result } from '../shared/Result';
-import { ClasseDeRisco, isClasseDeRisco, StatusDoProduto } from './ClasseDeRisco';
+import { ClasseDeRisco, isClasseDeRisco } from './ClasseDeRisco';
+import { StatusDoProduto } from './StatusDoProduto';
 
 export interface ProdutoQuimicoProps {
   id: string;
