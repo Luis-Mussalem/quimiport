@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { AlterarStatusDaCarga } from '../../../src/application/carga/AlterarStatusDaCarga';
-import { RegistrarCargaDTO } from '../../../src/application/carga/CargaDTO';
 import { BuscarCarga, ListarCargas } from '../../../src/application/carga/ConsultarCargas';
 import { RegistrarCarga } from '../../../src/application/carga/RegistrarCarga';
 import { RegistrarDocumentoDaCarga } from '../../../src/application/carga/RegistrarDocumentoDaCarga';
@@ -14,77 +13,72 @@ import {
 } from '../../../src/domain/shared/DomainError';
 import { CargaQuimicaRepositoryEmMemoria } from '../../../src/infrastructure/persistence/in-memory/CargaQuimicaRepositoryEmMemoria';
 import { ProdutoQuimicoRepositoryEmMemoria } from '../../../src/infrastructure/persistence/in-memory/ProdutoQuimicoRepositoryEmMemoria';
+import { dadosDeCarga, loggerFalso, umaCargaEm, umProdutoAtivo, umProdutoInativo } from '../../support/builders';
 
 describe('Casos de uso de carga', () => {
   let cargas: CargaQuimicaRepositoryEmMemoria;
   let produtos: ProdutoQuimicoRepositoryEmMemoria;
   let produto: ProdutoQuimico;
-  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  let logger: ReturnType<typeof loggerFalso>;
 
-  const novaCarga = (dados: Partial<RegistrarCargaDTO> = {}): RegistrarCargaDTO => ({
-    codigo: 'CQ-0001',
-    produtoId: produto.id,
-    quantidade: 20,
-    unidadeDeMedida: 'T',
-    origem: 'Navio MSC Aurora',
-    destino: 'Terminal Alemoa',
-    responsavelTecnico: 'Eng. Carlos Lima',
-    documentosApresentados: ['FDS', 'FICHA_DE_EMERGENCIA', 'DECLARACAO_DE_MERCADORIA_PERIGOSA'],
-    ...dados,
-  });
-
-  const registrar = async (dados: Partial<RegistrarCargaDTO> = {}) => {
-    const resultado = await new RegistrarCarga(cargas, produtos, logger).executar(novaCarga(dados));
-    if (!resultado.ok) throw resultado.error;
-    return resultado.value;
-  };
-
-  const alterar = (cargaId: string, novoStatus: StatusDaCarga, motivo?: string) =>
+  const registrarCarga = () => new RegistrarCarga(cargas, produtos, logger);
+  const alterarStatus = (cargaId: string, novoStatus: StatusDaCarga, motivo?: string) =>
     new AlterarStatusDaCarga(cargas, logger).executar({ cargaId, novoStatus, motivo });
+
+  // Cria a carga direto no status desejado e salva no repositório.
+  const cargaSalvaEm = async (status: StatusDaCarga, dados = {}) => {
+    const carga = umaCargaEm(status, produto.id, dados);
+    await cargas.salvar(carga);
+    return carga;
+  };
 
   beforeEach(async () => {
     cargas = new CargaQuimicaRepositoryEmMemoria();
     produtos = new ProdutoQuimicoRepositoryEmMemoria();
-    const criado = ProdutoQuimico.criar({ nome: 'Hidróxido de Sódio', classeDeRisco: '8' });
-    if (!criado.ok) throw criado.error;
-    produto = criado.value;
+    logger = loggerFalso();
+    produto = umProdutoAtivo();
     await produtos.salvar(produto);
-    vi.clearAllMocks();
   });
 
   describe('registro', () => {
     it('registra carga com produto ativo e loga o evento', async () => {
-      const carga = await registrar();
+      const resultado = await registrarCarga().executar(dadosDeCarga(produto.id));
 
-      expect(carga.status).toBe('REGISTRADA');
-      expect(carga.documentacao.completa).toBe(true);
-      expect(await cargas.buscarPorId(carga.id)).not.toBeNull();
-      expect(logger.info).toHaveBeenCalledWith('carga.registrada', expect.objectContaining({ cargaId: carga.id }));
+      expect(resultado.ok).toBe(true);
+      if (!resultado.ok) return;
+      expect(resultado.value.status).toBe('REGISTRADA');
+      expect(resultado.value.documentacao.completa).toBe(true);
+      expect(await cargas.buscarPorId(resultado.value.id)).not.toBeNull();
+      expect(logger.info).toHaveBeenCalledWith(
+        'carga.registrada',
+        expect.objectContaining({ cargaId: resultado.value.id }),
+      );
     });
 
     it('rejeita carga com produto inativo', async () => {
-      produto.inativar();
-      await produtos.salvar(produto);
+      const inativo = umProdutoInativo();
+      await produtos.salvar(inativo);
 
-      const resultado = await new RegistrarCarga(cargas, produtos, logger).executar(novaCarga());
+      const resultado = await registrarCarga().executar(dadosDeCarga(inativo.id));
 
       expect(resultado.ok).toBe(false);
       if (resultado.ok) return;
       expect(resultado.error).toBeInstanceOf(RegraDeNegocioError);
       expect(resultado.error.message).toMatch(/inativo/);
       expect(await cargas.listar()).toHaveLength(0);
+      expect(logger.warn).toHaveBeenCalledWith('carga.registro_rejeitado', expect.anything());
     });
 
     it('rejeita carga com produto inexistente', async () => {
-      const resultado = await new RegistrarCarga(cargas, produtos, logger).executar(
-        novaCarga({ produtoId: 'nao-existe' }),
-      );
+      const resultado = await registrarCarga().executar(dadosDeCarga('nao-existe'));
 
       expect(resultado.ok).toBe(false);
+      if (resultado.ok) return;
+      expect(resultado.error).toBeInstanceOf(RegraDeNegocioError);
     });
 
     it.each([0, -5])('rejeita carga com quantidade %s', async (quantidade) => {
-      const resultado = await new RegistrarCarga(cargas, produtos, logger).executar(novaCarga({ quantidade }));
+      const resultado = await registrarCarga().executar(dadosDeCarga(produto.id, { quantidade }));
 
       expect(resultado.ok).toBe(false);
       if (resultado.ok) return;
@@ -92,9 +86,9 @@ describe('Casos de uso de carga', () => {
     });
 
     it('rejeita código de carga duplicado', async () => {
-      await registrar();
+      await cargaSalvaEm('REGISTRADA', { codigo: 'CQ-0001' });
 
-      const resultado = await new RegistrarCarga(cargas, produtos, logger).executar(novaCarga());
+      const resultado = await registrarCarga().executar(dadosDeCarga(produto.id, { codigo: 'cq-0001' }));
 
       expect(resultado.ok).toBe(false);
       if (resultado.ok) return;
@@ -104,13 +98,12 @@ describe('Casos de uso de carga', () => {
 
   describe('mudança de status', () => {
     it('atualiza o status, persiste e loga a transição', async () => {
-      const carga = await registrar();
+      const carga = await cargaSalvaEm('REGISTRADA');
 
-      const resultado = await alterar(carga.id, 'EM_ANALISE');
+      const resultado = await alterarStatus(carga.id, 'EM_ANALISE');
 
       expect(resultado.ok).toBe(true);
-      const salva = await cargas.buscarPorId(carga.id);
-      expect(salva?.status).toBe('EM_ANALISE');
+      expect((await cargas.buscarPorId(carga.id))?.status).toBe('EM_ANALISE');
       expect(logger.info).toHaveBeenCalledWith(
         'carga.status_alterado',
         expect.objectContaining({ de: 'REGISTRADA', para: 'EM_ANALISE' }),
@@ -118,9 +111,9 @@ describe('Casos de uso de carga', () => {
     });
 
     it('rejeita transição proibida sem alterar a carga salva', async () => {
-      const carga = await registrar();
+      const carga = await cargaSalvaEm('REGISTRADA');
 
-      const resultado = await alterar(carga.id, 'FINALIZADA');
+      const resultado = await alterarStatus(carga.id, 'FINALIZADA');
 
       expect(resultado.ok).toBe(false);
       if (resultado.ok) return;
@@ -130,38 +123,47 @@ describe('Casos de uso de carga', () => {
     });
 
     it('não libera carga sem documentação e libera depois de apresentada', async () => {
-      const carga = await registrar({ documentosApresentados: ['FDS'] });
-      await alterar(carga.id, 'EM_ANALISE');
-      await alterar(carga.id, 'EM_INSPECAO');
+      const carga = await cargaSalvaEm('EM_INSPECAO', { documentosApresentados: ['FDS'] });
 
-      const semDocumentos = await alterar(carga.id, 'LIBERADA');
+      const semDocumentos = await alterarStatus(carga.id, 'LIBERADA');
       expect(semDocumentos.ok).toBe(false);
+      if (semDocumentos.ok) return;
+      expect(semDocumentos.error).toBeInstanceOf(RegraDeNegocioError);
 
       const documento = new RegistrarDocumentoDaCarga(cargas, logger);
       await documento.executar({ cargaId: carga.id, tipo: 'FICHA_DE_EMERGENCIA', apresentado: true });
       await documento.executar({ cargaId: carga.id, tipo: 'DECLARACAO_DE_MERCADORIA_PERIGOSA', apresentado: true });
 
-      const liberada = await alterar(carga.id, 'LIBERADA');
+      const liberada = await alterarStatus(carga.id, 'LIBERADA');
       expect(liberada.ok).toBe(true);
       expect(logger.info).toHaveBeenCalledWith('carga.liberada', expect.anything());
     });
 
     it('não movimenta carga bloqueada', async () => {
-      const carga = await registrar();
-      await alterar(carga.id, 'EM_ANALISE');
-      await alterar(carga.id, 'EM_INSPECAO');
-      await alterar(carga.id, 'BLOQUEADA', 'Vazamento detectado');
+      const carga = await cargaSalvaEm('BLOQUEADA');
 
-      const resultado = await alterar(carga.id, 'EM_MOVIMENTACAO');
+      const resultado = await alterarStatus(carga.id, 'EM_MOVIMENTACAO');
 
       expect(resultado.ok).toBe(false);
       expect((await cargas.buscarPorId(carga.id))?.status).toBe('BLOQUEADA');
     });
 
-    it('cancela a carga registrando o motivo no histórico', async () => {
-      const carga = await registrar();
+    it('bloqueia carga em inspeção e loga o bloqueio', async () => {
+      const carga = await cargaSalvaEm('EM_INSPECAO');
 
-      const resultado = await alterar(carga.id, 'CANCELADA', 'Desistência do importador');
+      const resultado = await alterarStatus(carga.id, 'BLOQUEADA', 'Lacre violado');
+
+      expect(resultado.ok).toBe(true);
+      expect(logger.info).toHaveBeenCalledWith(
+        'carga.bloqueada',
+        expect.objectContaining({ motivo: 'Lacre violado' }),
+      );
+    });
+
+    it('cancela a carga registrando o motivo no histórico', async () => {
+      const carga = await cargaSalvaEm('LIBERADA');
+
+      const resultado = await alterarStatus(carga.id, 'CANCELADA', 'Desistência do importador');
 
       expect(resultado.ok).toBe(true);
       if (!resultado.ok) return;
@@ -170,7 +172,7 @@ describe('Casos de uso de carga', () => {
     });
 
     it('retorna não encontrado para carga inexistente', async () => {
-      const resultado = await alterar('nao-existe', 'EM_ANALISE');
+      const resultado = await alterarStatus('nao-existe', 'EM_ANALISE');
 
       expect(resultado.ok).toBe(false);
       if (resultado.ok) return;
@@ -180,15 +182,14 @@ describe('Casos de uso de carga', () => {
 
   describe('consultas', () => {
     it('lista cargas filtrando por status e busca por id', async () => {
-      const primeira = await registrar({ codigo: 'CQ-1' });
-      await registrar({ codigo: 'CQ-2' });
-      await alterar(primeira.id, 'EM_ANALISE');
+      const emAnalise = await cargaSalvaEm('EM_ANALISE', { codigo: 'CQ-1' });
+      await cargaSalvaEm('REGISTRADA', { codigo: 'CQ-2' });
 
       const listar = new ListarCargas(cargas);
       expect(await listar.executar()).toHaveLength(2);
       expect(await listar.executar({ status: 'EM_ANALISE' })).toHaveLength(1);
 
-      const buscada = await new BuscarCarga(cargas).executar(primeira.id);
+      const buscada = await new BuscarCarga(cargas).executar(emAnalise.id);
       expect(buscada.ok && buscada.value.codigo).toBe('CQ-1');
     });
   });
