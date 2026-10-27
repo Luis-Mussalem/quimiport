@@ -35,7 +35,7 @@ O **QuimiPort** centraliza o ciclo de vida das cargas químicas portuárias, gar
 | 09 | [TypeScript e JS Avançado](docs/09-typescript-e-js-avancado.md) | Decisões de linguagem com exemplos conceituais |
 | 10 | [Decisões Arquiteturais (ADRs)](docs/10-decisoes-arquiteturais.md) | Registro das decisões e suas consequências |
 
-Diagramas em imagem: [`docs/diagramas/`](docs/diagramas) · Apresentação e roteiro do vídeo: [`apresentacao/`](apresentacao)
+Diagramas em imagem: [`docs/diagramas/`](docs/diagramas) · Apresentação: [`apresentacao/`](apresentacao)
 
 ## Stack planejada (próximas fases)
 
