@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { CasosDeUso } from '../../application/CasosDeUso';
+import { rotasDeCargas } from './controllers/CargaQuimicaController';
 import { rotasDeProdutos } from './controllers/ProdutoQuimicoController';
 import { registrarTratamentoDeErros } from './erros';
 
@@ -43,6 +44,7 @@ export async function criarApp({
   });
 
   await app.register(rotasDeProdutos(casosDeUso));
+  await app.register(rotasDeCargas(casosDeUso));
 
   return app;
 }
