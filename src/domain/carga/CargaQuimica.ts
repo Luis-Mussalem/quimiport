@@ -24,6 +24,9 @@ export interface CargaQuimicaProps {
   criadoEm: Date;
   atualizadoEm: Date;
   historico: RegistroDeStatus[];
+  // Versão gravada da carga (0 = ainda não foi salva). Usada pelo repositório
+  // para detectar duas alterações simultâneas na mesma carga.
+  versao: number;
 }
 
 export interface DadosDaCarga {
@@ -101,6 +104,7 @@ export class CargaQuimica {
         historico: [
           { id: randomUUID(), statusAnterior: null, statusNovo: 'REGISTRADA', motivo: null, ocorridoEm: agora },
         ],
+        versao: 0,
       }),
     );
   }
@@ -213,6 +217,10 @@ export class CargaQuimica {
 
   get status(): StatusDaCarga {
     return this.props.status;
+  }
+
+  get versao(): number {
+    return this.props.versao;
   }
 
   get historico(): readonly RegistroDeStatus[] {

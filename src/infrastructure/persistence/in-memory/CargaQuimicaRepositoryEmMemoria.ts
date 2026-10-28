@@ -1,3 +1,4 @@
+import { ConflitoError } from '../../../application/shared/ApplicationError';
 import { CargaQuimica, CargaQuimicaProps } from '../../../domain/carga/CargaQuimica';
 import {
   CargaQuimicaRepository,
@@ -7,8 +8,16 @@ import {
 export class CargaQuimicaRepositoryEmMemoria implements CargaQuimicaRepository {
   private readonly registros = new Map<string, CargaQuimicaProps>();
 
+  // Mesmo comportamento do repositório real: só grava se a versão lida
+  // ainda for a versão salva (controle de concorrência otimista).
   async salvar(carga: CargaQuimica): Promise<void> {
-    this.registros.set(carga.id, carga.toProps());
+    const props = carga.toProps();
+    const versaoSalva = this.registros.get(props.id)?.versao ?? 0;
+
+    if (props.versao !== versaoSalva) {
+      throw new ConflitoError(`A carga ${props.codigo} foi alterada por outra operação. Tente novamente.`);
+    }
+    this.registros.set(props.id, { ...props, versao: versaoSalva + 1 });
   }
 
   async buscarPorId(id: string): Promise<CargaQuimica | null> {
