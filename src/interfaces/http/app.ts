@@ -4,6 +4,7 @@ import { CasosDeUso } from '../../application/CasosDeUso';
 import { rotasDeCargas } from './controllers/CargaQuimicaController';
 import { rotasDeProdutos } from './controllers/ProdutoQuimicoController';
 import { registrarTratamentoDeErros } from './erros';
+import { registrarDocumentacao } from './swagger';
 
 export interface OpcoesDoApp {
   casosDeUso: CasosDeUso;
@@ -28,20 +29,25 @@ export async function criarApp({
   app.setSerializerCompiler(() => (dados) => JSON.stringify(dados));
 
   registrarTratamentoDeErros(app);
+  await registrarDocumentacao(app);
 
   // Devolve o id da requisição para facilitar encontrar os logs dela.
   app.addHook('onRequest', async (request, reply) => {
     reply.header('x-request-id', request.id);
   });
 
-  app.get('/health', async (_request, reply) => {
-    try {
-      await verificarSaude?.();
-      return { status: 'ok' };
-    } catch {
-      return reply.status(503).send({ status: 'indisponivel' });
-    }
-  });
+  app.get(
+    '/health',
+    { schema: { tags: ['Saúde'], summary: 'Verifica se a API e o banco de dados estão disponíveis' } },
+    async (_request, reply) => {
+      try {
+        await verificarSaude?.();
+        return { status: 'ok' };
+      } catch {
+        return reply.status(503).send({ status: 'indisponivel' });
+      }
+    },
+  );
 
   await app.register(rotasDeProdutos(casosDeUso));
   await app.register(rotasDeCargas(casosDeUso));
