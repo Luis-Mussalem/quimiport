@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { CasosDeUso } from '../../application/CasosDeUso';
+import { registrarTratamentoDeErros } from './erros';
 
 export interface OpcoesDoApp {
   casosDeUso: CasosDeUso;
@@ -14,6 +15,8 @@ export async function criarApp({ logger, verificarSaude }: OpcoesDoApp): Promise
     loggerInstance: logger,
     genReqId: () => randomUUID(),
   });
+
+  registrarTratamentoDeErros(app);
 
   // Devolve o id da requisição para facilitar encontrar os logs dela.
   app.addHook('onRequest', async (request, reply) => {
