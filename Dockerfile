@@ -19,6 +19,9 @@ FROM node:24-alpine
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
+# Desliga a checagem de atualização do Prisma: evita uma chamada de rede
+# na subida e o aviso de nova versão nos logs.
+ENV CHECKPOINT_DISABLE=1
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -37,4 +40,5 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \
 
 # Aplica as migrations pendentes e inicia a API. O exec faz o Node receber
 # os sinais de parada (SIGTERM) e encerrar a aplicação corretamente.
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]
+# O Prisma é chamado direto (sem npx) para não poluir os logs com avisos do npm.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]
