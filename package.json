@@ -13,7 +13,11 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "author": "Luis Otavio Mussalem Santos",
   "license": "UNLICENSED",
@@ -22,5 +26,12 @@
     "tsx": "^4.23.15",
     "typescript": "~5.9",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "prisma": "^6.19.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
   }
 }

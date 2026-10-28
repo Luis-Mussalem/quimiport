@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusProduto {
+  ATIVO
+  INATIVO
+
+  @@map("status_produto")
+}
+
+enum StatusCarga {
+  REGISTRADA
+  EM_ANALISE
+  EM_INSPECAO
+  LIBERADA
+  BLOQUEADA
+  EM_MOVIMENTACAO
+  FINALIZADA
+  CANCELADA
+
+  @@map("status_carga")
+}
+
+enum UnidadeDeMedida {
+  KG
+  T
+  L
+  M3
+
+  @@map("unidade_de_medida")
+}
+
+enum TipoDeDocumento {
+  FDS
+  FICHA_DE_EMERGENCIA
+  DECLARACAO_DE_MERCADORIA_PERIGOSA
+
+  @@map("tipo_de_documento")
+}
+
+model ProdutoQuimico {
+  id                     String        @id @db.Uuid
+  nome                   String        @db.VarChar(150)
+  descricao              String?
+  numeroOnu              String?       @map("numero_onu") @db.VarChar(6)
+  classeDeRisco          String        @map("classe_de_risco") @db.VarChar(3)
+  grupoDeCompatibilidade String?       @map("grupo_de_compatibilidade") @db.VarChar(30)
+  status                 StatusProduto @default(ATIVO)
+  criadoEm               DateTime      @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm           DateTime      @map("atualizado_em") @db.Timestamptz(3)
+
+  cargas CargaQuimica[]
+
+  @@index([status])
+  @@map("produto_quimico")
+}
+
+model CargaQuimica {
+  id                 String          @id @db.Uuid
+  codigo             String          @unique @db.VarChar(40)
+  produtoId          String          @map("produto_id") @db.Uuid
+  quantidade         Decimal         @db.Decimal(14, 3)
+  unidadeDeMedida    UnidadeDeMedida @map("unidade_de_medida")
+  origem             String          @db.VarChar(150)
+  destino            String          @db.VarChar(150)
+  responsavelTecnico String          @map("responsavel_tecnico") @db.VarChar(150)
+  status             StatusCarga
+  dataDeEntrada      DateTime        @map("data_de_entrada") @db.Timestamptz(3)
+  versao             Int             @default(1)
+  criadoEm           DateTime        @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm       DateTime        @map("atualizado_em") @db.Timestamptz(3)
+
+  // onDelete: Restrict impede apagar um produto que já foi usado em cargas.
+  produto    ProdutoQuimico         @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  documentos DocumentoCarga[]
+  historico  HistoricoStatusCarga[]
+
+  @@index([status])
+  @@index([produtoId])
+  @@map("carga_quimica")
+}
+
+model DocumentoCarga {
+  cargaId       String          @map("carga_id") @db.Uuid
+  tipo          TipoDeDocumento
+  apresentado   Boolean         @default(false)
+  apresentadoEm DateTime?       @map("apresentado_em") @db.Timestamptz(3)
+
+  carga CargaQuimica @relation(fields: [cargaId], references: [id], onDelete: Restrict)
+
+  @@id([cargaId, tipo])
+  @@map("documento_carga")
+}
+
+model HistoricoStatusCarga {
+  id             String       @id @db.Uuid
+  cargaId        String       @map("carga_id") @db.Uuid
+  ordem          Int
+  statusAnterior StatusCarga? @map("status_anterior")
+  statusNovo     StatusCarga  @map("status_novo")
+  motivo         String?      @db.VarChar(500)
+  ocorridoEm     DateTime     @map("ocorrido_em") @db.Timestamptz(3)
+
+  carga CargaQuimica @relation(fields: [cargaId], references: [id], onDelete: Restrict)
+
+  @@unique([cargaId, ordem])
+  @@map("historico_status_carga")
+}
