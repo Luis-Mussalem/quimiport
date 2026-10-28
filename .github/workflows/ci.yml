@@ -59,3 +59,19 @@ jobs:
 
       - name: Rodar os testes
         run: npm test
+
+  docker:
+    name: Build da imagem Docker
+    runs-on: ubuntu-latest
+    # Só gera a imagem se o código passou nos testes.
+    needs: testes
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v5
+
+      - name: Validar o docker-compose
+        run: docker compose config --quiet
+
+      - name: Construir a imagem
+        run: docker build -t quimiport-api:${{ github.sha }} .
