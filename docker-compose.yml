@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build: .
+    container_name: quimiport-api
+    restart: unless-stopped
+    # Só sobe depois que o banco responder ao healthcheck.
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Dentro da rede do compose o banco é acessado pelo nome do serviço (db),
+      # na porta interna 5432.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quimiport}:${POSTGRES_PASSWORD:-quimiport}@db:5432/${POSTGRES_DB:-quimiport}?schema=public
+    ports:
+      - "${API_PORT:-3333}:3333"
+
 volumes:
   quimiport-pgdata:
