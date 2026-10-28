@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { CasosDeUso } from '../../application/CasosDeUso';
+import { rotasDeProdutos } from './controllers/ProdutoQuimicoController';
 import { registrarTratamentoDeErros } from './erros';
 
 export interface OpcoesDoApp {
@@ -10,11 +11,20 @@ export interface OpcoesDoApp {
   verificarSaude?: () => Promise<void>;
 }
 
-export async function criarApp({ logger, verificarSaude }: OpcoesDoApp): Promise<FastifyInstance> {
+export async function criarApp({
+  casosDeUso,
+  logger,
+  verificarSaude,
+}: OpcoesDoApp): Promise<FastifyInstance> {
   const app = Fastify({
     loggerInstance: logger,
     genReqId: () => randomUUID(),
   });
+
+  // A validação é feita com Zod nos controllers. Os schemas JSON das rotas
+  // servem só para documentar, então o Fastify não valida nem filtra nada.
+  app.setValidatorCompiler(() => (dados) => ({ value: dados }));
+  app.setSerializerCompiler(() => (dados) => JSON.stringify(dados));
 
   registrarTratamentoDeErros(app);
 
@@ -31,6 +41,8 @@ export async function criarApp({ logger, verificarSaude }: OpcoesDoApp): Promise
       return reply.status(503).send({ status: 'indisponivel' });
     }
   });
+
+  await app.register(rotasDeProdutos(casosDeUso));
 
   return app;
 }
