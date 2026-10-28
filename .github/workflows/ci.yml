@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Se um novo push chegar na mesma branch, cancela a execução anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Typecheck, build e testes
+    runs-on: ubuntu-latest
+
+    # Banco real para os testes de integração dos repositórios Prisma.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: quimiport
+          POSTGRES_PASSWORD: quimiport
+          POSTGRES_DB: quimiport
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quimiport -d quimiport"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://quimiport:quimiport@localhost:5432/quimiport?schema=test
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v5
+
+      - name: Configurar o Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Auditar dependências
+        run: npm audit --audit-level=high
+
+      - name: Verificar tipos
+        run: npm run typecheck
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Rodar os testes
+        run: npm test
