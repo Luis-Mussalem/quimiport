@@ -8,7 +8,7 @@
 
 | Método | Rota | Descrição | Sucesso | Erros |
 |---|---|---|---|---|
-| `POST` | `/produtos-quimicos` | Cadastra um produto (status inicial `ATIVO`) | 201 | 400 |
+| `POST` | `/produtos-quimicos` | Cadastra um produto (status opcional, `ATIVO` ou `INATIVO`; padrão `ATIVO`) | 201 | 400 |
 | `GET` | `/produtos-quimicos` | Lista produtos. Filtro opcional: `?status=ATIVO\|INATIVO` | 200 | 400 |
 | `GET` | `/produtos-quimicos/:id` | Busca um produto | 200 | 400, 404 |
 | `PUT` | `/produtos-quimicos/:id` | Atualiza os dados de um produto | 200 | 400, 404 |
@@ -51,7 +51,7 @@ Todas as respostas de erro têm o mesmo formato:
 
 | HTTP | `erro` | Quando |
 |---|---|---|
-| 400 | `VALIDACAO` | Campo ausente ou em formato inválido; motivo ausente em bloqueio/cancelamento |
+| 400 | `VALIDACAO` | Campo ausente ou em formato inválido; status de produto inválido; motivo ausente em bloqueio/cancelamento |
 | 400 | `REQUISICAO_INVALIDA` | Requisição malformada (ex.: JSON inválido) |
 | 404 | `NAO_ENCONTRADO` | Produto ou carga inexistente |
 | 404 | `ROTA_NAO_ENCONTRADA` | Rota inexistente |

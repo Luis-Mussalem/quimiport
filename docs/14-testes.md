@@ -18,11 +18,11 @@ No **CI** (GitHub Actions) todos os testes rodam a cada push, com um PostgreSQL 
 
 | Camada | Pasta | O que cobre | Testes | Banco |
 |---|---|---|---|---|
-| **Unitário** | `tests/unit/domain` | Entidades, objeto de valor `Quantidade` e máquina de estados | 110 | Não |
-| **Integração — casos de uso** | `tests/integration/application` | Casos de uso com repositórios em memória e logger falso | 22 | Não |
+| **Unitário** | `tests/unit/domain` | Entidades, objeto de valor `Quantidade` e máquina de estados | 112 | Não |
+| **Integração — casos de uso** | `tests/integration/application` | Casos de uso com repositórios em memória e logger falso | 23 | Não |
 | **Integração — persistência** | `tests/integration/persistence` | Repositórios Prisma contra PostgreSQL real; repositório em memória | 10 | Sim |
-| **Integração — API** | `tests/integration/http` | Requisições HTTP completas: rota → validação → caso de uso → erro → resposta | 27 | Não |
-| | | **Total** | **169** | |
+| **Integração — API** | `tests/integration/http` | Requisições HTTP completas: rota → validação → caso de uso → erro → resposta | 29 | Não |
+| | | **Total** | **174** | |
 
 A base da pirâmide é o domínio: como ele não depende de banco nem de framework, a maioria dos testes é unitária e roda em milissegundos.
 
@@ -56,7 +56,7 @@ Cada cenário do enunciado é coberto em mais de uma camada:
 
 ## Além dos obrigatórios
 
-- **Regras da Fase 1:** carga sem responsável técnico (RN-12), sem produto (RN-01), produto inexistente, carga cancelada não liberada (RN-06), não finalizar sem liberar (RN-07).
+- **Regras do enunciado e da Fase 1:** produto com status inválido, carga sem responsável técnico (RN-12), sem produto (RN-01), produto inexistente, carga cancelada não liberada (RN-06), não finalizar sem liberar (RN-07).
 - **Persistência:** código duplicado barrado pela restrição `UNIQUE`, chave estrangeira impede carga de produto inexistente, concorrência otimista rejeita versão desatualizada.
 - **API:** 404 para recurso e rota inexistentes, 400 para id que não é UUID e para JSON malformado, 500 sem expor detalhes internos, health check e documentação OpenAPI disponíveis.
 

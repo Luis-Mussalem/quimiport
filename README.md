@@ -186,7 +186,7 @@ docker compose up -d db
 npm test
 ```
 
-**169 testes** em quatro níveis:
+**174 testes** em quatro níveis:
 
 - **unitários**, do domínio;
 - **integração**, dos casos de uso;
