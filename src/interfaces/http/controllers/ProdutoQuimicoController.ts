@@ -4,7 +4,12 @@ import { CasosDeUso } from '../../../application/CasosDeUso';
 import { valorOuErro } from '../erros';
 import { documentar } from '../openapi';
 import { erroResposta, idParams } from '../schemas/comum';
-import { dadosDoProdutoBody, filtroDeProdutosQuery, produtoResposta } from '../schemas/produto';
+import {
+  cadastroDoProdutoBody,
+  dadosDoProdutoBody,
+  filtroDeProdutosQuery,
+  produtoResposta,
+} from '../schemas/produto';
 
 const tags = ['Produtos químicos'];
 
@@ -17,16 +22,21 @@ export function rotasDeProdutos(casos: CasosDeUso): FastifyPluginAsync {
         schema: documentar({
           tags,
           summary: 'Cadastra um produto químico',
-          description: 'Nome e classe de risco são obrigatórios. O produto é criado com status ATIVO.',
-          body: dadosDoProdutoBody,
+          description:
+            'Nome e classe de risco são obrigatórios. O status é opcional (ATIVO ou INATIVO); ' +
+            'se omitido, o produto é criado ATIVO. Qualquer outro status é recusado.',
+          body: cadastroDoProdutoBody,
           respostas: {
             201: { descricao: 'Produto cadastrado', schema: produtoResposta },
-            400: { descricao: 'Dados inválidos (ex.: sem nome ou sem classe de risco)', schema: erroResposta },
+            400: {
+              descricao: 'Dados inválidos (ex.: sem nome, sem classe de risco ou status inválido)',
+              schema: erroResposta,
+            },
           },
         }),
       },
       async (request, reply) => {
-        const dados = dadosDoProdutoBody.parse(request.body);
+        const dados = cadastroDoProdutoBody.parse(request.body);
         const produto = valorOuErro(await casos.cadastrarProduto.executar(dados));
         return reply.status(201).send(produto);
       },

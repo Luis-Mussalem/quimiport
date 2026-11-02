@@ -21,6 +21,10 @@ export interface DadosDoProdutoDTO {
   grupoDeCompatibilidade?: string | null;
 }
 
+export interface DadosDoCadastroDTO extends DadosDoProdutoDTO {
+  status?: string;
+}
+
 export function paraProdutoDTO(produto: ProdutoQuimico): ProdutoDTO {
   const p = produto.toProps();
   return {

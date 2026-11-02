@@ -25,6 +25,26 @@ export const dadosDoProdutoBody = z
     },
   });
 
+// O cadastro aceita o status inicial; a atualização (PUT) não, pois o status
+// de um produto existente só muda pela inativação.
+export const cadastroDoProdutoBody = dadosDoProdutoBody
+  .extend({
+    status: z
+      .enum(STATUS_DO_PRODUTO, { error: 'Status inválido (use ATIVO ou INATIVO)' })
+      .optional()
+      .meta({ description: 'Status inicial. Se omitido, o produto é criado ATIVO.' }),
+  })
+  .meta({
+    example: {
+      nome: 'Ácido Sulfúrico',
+      descricao: 'Ácido mineral forte, altamente corrosivo',
+      numeroOnu: 'UN1830',
+      classeDeRisco: '8',
+      grupoDeCompatibilidade: null,
+      status: 'ATIVO',
+    },
+  });
+
 export const filtroDeProdutosQuery = z.object({
   status: z.enum(STATUS_DO_PRODUTO).optional(),
 });

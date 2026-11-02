@@ -54,6 +54,23 @@ describe('ProdutoQuimico', () => {
 
       expect(resultado.ok).toBe(false);
     });
+
+    it('cria o produto com o status informado', () => {
+      const resultado = ProdutoQuimico.criar({ ...dadosValidos, status: 'INATIVO' });
+
+      expect(resultado.ok).toBe(true);
+      if (!resultado.ok) return;
+      expect(resultado.value.status).toBe('INATIVO');
+    });
+
+    it('rejeita produto com status inválido', () => {
+      const resultado = ProdutoQuimico.criar({ ...dadosValidos, status: 'PENDENTE' });
+
+      expect(resultado.ok).toBe(false);
+      if (resultado.ok) return;
+      expect(resultado.error).toBeInstanceOf(ValidacaoError);
+      expect(resultado.error.message).toMatch(/Status inválido/);
+    });
   });
 
   describe('atualização e inativação', () => {

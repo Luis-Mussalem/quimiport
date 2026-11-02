@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { ValidacaoError } from '../shared/DomainError';
 import { fail, ok, Result } from '../shared/Result';
 import { ClasseDeRisco, isClasseDeRisco } from './ClasseDeRisco';
-import { StatusDoProduto } from './StatusDoProduto';
+import { isStatusDoProduto, STATUS_DO_PRODUTO, StatusDoProduto } from './StatusDoProduto';
 
 export interface ProdutoQuimicoProps {
   id: string;
@@ -22,6 +22,12 @@ export interface DadosDoProduto {
   numeroOnu?: string | null;
   classeDeRisco: string;
   grupoDeCompatibilidade?: string | null;
+}
+
+// No cadastro o status pode ser informado; sem ele, o produto nasce ATIVO.
+// Depois disso, o status só muda pela inativação.
+export interface DadosDoCadastro extends DadosDoProduto {
+  status?: string;
 }
 
 // Aceita "UN1203" ou só os 4 dígitos ("1203"), inclusive códigos simulados.
@@ -69,15 +75,22 @@ function validar(dados: DadosDoProduto): Result<DadosValidados> {
 export class ProdutoQuimico {
   private constructor(private props: ProdutoQuimicoProps) {}
 
-  static criar(dados: DadosDoProduto, agora = new Date()): Result<ProdutoQuimico> {
+  static criar(dados: DadosDoCadastro, agora = new Date()): Result<ProdutoQuimico> {
     const validacao = validar(dados);
     if (!validacao.ok) return validacao;
+
+    const status = dados.status ?? 'ATIVO';
+    if (!isStatusDoProduto(status)) {
+      return fail(
+        new ValidacaoError(`Status inválido: ${status}. Use ${STATUS_DO_PRODUTO.join(' ou ')}`),
+      );
+    }
 
     return ok(
       new ProdutoQuimico({
         id: randomUUID(),
         ...validacao.value,
-        status: 'ATIVO',
+        status,
         criadoEm: agora,
         atualizadoEm: agora,
       }),

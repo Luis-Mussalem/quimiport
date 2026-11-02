@@ -47,6 +47,18 @@ describe('Casos de uso de produto', () => {
     expect(await repositorio.listar()).toHaveLength(0);
   });
 
+  it('não persiste produto com status inválido', async () => {
+    const resultado = await new CadastrarProduto(repositorio, logger).executar({
+      ...dadosDeProduto(),
+      status: 'PENDENTE',
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.error).toBeInstanceOf(ValidacaoError);
+    expect(await repositorio.listar()).toHaveLength(0);
+  });
+
   it('atualiza um produto existente', async () => {
     const produto = umProdutoAtivo();
     await repositorio.salvar(produto);

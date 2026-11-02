@@ -49,6 +49,23 @@ describe('API de produtos químicos', () => {
       expect(resposta.json().detalhes[0].campo).toBe('classeDeRisco');
     });
 
+    it('responde 400 para produto com status inválido', async () => {
+      const resposta = await cadastrar({ ...dadosDeProduto(), status: 'PENDENTE' });
+
+      expect(resposta.statusCode).toBe(400);
+      expect(resposta.json().detalhes[0]).toEqual({
+        campo: 'status',
+        mensagem: 'Status inválido (use ATIVO ou INATIVO)',
+      });
+    });
+
+    it('cadastra produto já inativo quando o status é informado', async () => {
+      const resposta = await cadastrar({ ...dadosDeProduto(), status: 'INATIVO' });
+
+      expect(resposta.statusCode).toBe(201);
+      expect(resposta.json().status).toBe('INATIVO');
+    });
+
     it('responde 400 quando o domínio recusa o número ONU', async () => {
       const resposta = await cadastrar(dadosDeProduto({ numeroOnu: 'ABC' }));
 
